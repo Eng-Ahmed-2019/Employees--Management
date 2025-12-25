@@ -2,6 +2,8 @@
 {
     public static class NationalIdValidator
     {
+        private static readonly int[] ValidGovernorates = Enumerable.Range(1, 29).ToArray();
+
         public static bool IsValid(string nationalId)
         {
             if (string.IsNullOrEmpty(nationalId) || nationalId.Length != 14)
@@ -10,7 +12,12 @@
             if (!long.TryParse(nationalId, out _))
                 return false;
 
-            int century = nationalId[0] == '2' ? 1900 : nationalId[0] == '3' ? 2000 : 0;
+            int century = nationalId[0] switch
+            {
+                '2' => 1900,
+                '3' => 2000,
+                _ => 0
+            };
             if (century == 0) return false;
 
             int year = int.Parse(nationalId.Substring(1, 2));
@@ -28,22 +35,27 @@
             }
 
             int governorate = int.Parse(nationalId.Substring(7, 2));
-            if (governorate < 1 || governorate > 29)
+            if (!ValidGovernorates.Contains(governorate))
                 return false;
 
+            if (!IsValidChecksum(nationalId))
+                return false;
+
+            return true;
+        }
+
+        private static bool IsValidChecksum(string nationalId)
+        {
             int sum = 0;
             for (int i = 0; i < 13; i++)
             {
                 int digit = int.Parse(nationalId[i].ToString());
                 sum += digit * (14 - i);
             }
+
             int checksum = sum % 11 % 10;
-
             int lastDigit = int.Parse(nationalId[13].ToString());
-            if (checksum != lastDigit)
-                return false;
-
-            return true;
+            return checksum == lastDigit;
         }
 
         public static string GetGender(string nationalId)

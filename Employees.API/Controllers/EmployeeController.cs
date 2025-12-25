@@ -1,6 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using MediatR;
+using Microsoft.AspNetCore.Mvc;
 using Employees.Application.DTOs;
-using Employees.Application.Services;
+using Employees.Application.Queries;
+using Employees.Application.Commands;
 using Microsoft.AspNetCore.Authorization;
 
 namespace Employees.API.Controllers
@@ -10,42 +12,37 @@ namespace Employees.API.Controllers
     [Route("api/[controller]")]
     public class EmployeeController : ControllerBase
     {
-        private readonly EmployeeService _employeeService;
+        private readonly IMediator _mediator;
 
-        public EmployeeController(EmployeeService employeeService)
+        public EmployeeController(IMediator mediator)
         {
-            _employeeService = employeeService;
+            _mediator = mediator;
         }
 
         [HttpGet("autocomplete")]
         [Authorize(Roles = "Viewer,HR,Admin")]
-        public IActionResult AutoComplete(string term)
+        public async Task<IActionResult> AutoComplete(string term)
         {
-            return Ok(_employeeService.AutoComplete(term));
+            var result = await _mediator.Send(new AutoCompleteEmployeesQuery(term));
+            return Ok(result);
         }
 
         [HttpGet]
         [Authorize(Roles = "Viewer,HR,Admin")]
-        public async Task<IActionResult> GetAllEmployees(string? search, string? department, int page = 1)
+        public async Task<IActionResult> GetAllEmployees(string? search, int page = 1, int pageSize = 10)
         {
-            bool isLoggedIn = false;
-            if (User != null && User.Identity != null)
-            {
-                isLoggedIn = User.Identity.IsAuthenticated;
-            }
-            var employees = await _employeeService.GetAllEmployees(isLoggedIn, search, department, page);
-            return Ok(employees);
+            bool isLoggedIn = User?.Identity?.IsAuthenticated ?? false;
+            var result = await _mediator.Send(new GetAllEmployeesQuery(isLoggedIn, search, page, pageSize));
+            if (result == null || !result.Any()) return NotFound("No employees found.");
+            return Ok(result);
         }
 
         [HttpGet("{id}")]
         [Authorize(Roles = "HR,Admin")]
         public async Task<IActionResult> GetEmployeeById(int id)
         {
-            var employee = await _employeeService.GetEmployeeById(id);
-            if (employee == null)
-            {
-                return NotFound($"Not found Employee match with \"{id}\"");
-            }
+            var employee = await _mediator.Send(new GetEmployeeByIdQuery(id));
+            if (employee == null) return NotFound(new { Message = "Employee not found" });
             return Ok(employee);
         }
 
@@ -57,7 +54,8 @@ namespace Employees.API.Controllers
             {
                 return BadRequest(ModelState);
             }
-            await _employeeService.AddEmployee(employeeCreateDTO);
+            var r = await _mediator.Send(new AddEmployeeCommand(employeeCreateDTO));
+            if (r == null) return BadRequest("This email if already exists");
             return Ok("Employee created successfully");
         }
 
@@ -69,12 +67,8 @@ namespace Employees.API.Controllers
             {
                 return BadRequest(ModelState);
             }
-            var existingEmployee = await _employeeService.GetEmployeeById(id);
-            if (existingEmployee == null)
-            {
-                return NotFound($"Not found Employee match with \"{id}\"");
-            }
-            await _employeeService.UpdateEmployee(id, employeeUpdateDTO);
+            var r = await _mediator.Send(new UpdateEmployeeCommand(id, employeeUpdateDTO));
+            if (r == null) return NotFound($"Not Found Employee Match with: \"{id}\"");
             return Ok("Employee updated successfully");
         }
 
@@ -82,13 +76,9 @@ namespace Employees.API.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteEmployee(int id)
         {
-            var existingEmployee = await _employeeService.GetEmployeeById(id);
-            if (existingEmployee == null)
-            {
-                return NotFound($"Not found Employee match with \"{id}\"");
-            }
-            await _employeeService.DeleteEmployee(id);
-            return Ok("Employee deleted successfully");
+            var result = await _mediator.Send(new DeleteEmployeeCommand(id));
+            if (!result) return NotFound(new { Message = "Employee not found" });
+            return Ok(new { Message = "Employee deleted successfully" });
         }
     }
 }

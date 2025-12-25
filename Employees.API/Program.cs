@@ -1,15 +1,16 @@
+using MediatR;
 using System.Text;
 using Microsoft.OpenApi.Models;
-using Employees.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
-using Employees.Application.Services;
+using Employees.Application.Handler;
+using Employees.Infrastructure.Data;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 var builder = WebApplication.CreateBuilder(args);
 //Services here ....!
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -63,8 +64,16 @@ builder.Services.AddSwaggerGen(options =>
 });
 builder.Services.AddControllers();
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddScoped<AuthService>();
-builder.Services.AddScoped<EmployeeService>();
+builder.Services.AddMediatR(cfg =>
+{
+    cfg.RegisterServicesFromAssembly(typeof(RegisterUserCommandHandler).Assembly);
+    cfg.RegisterServicesFromAssembly(typeof(AddEmployeeCommandHandler).Assembly);
+    cfg.RegisterServicesFromAssembly(typeof(DeleteEmployeeCommandHandler).Assembly);
+    cfg.RegisterServicesFromAssembly(typeof(GetAllEmployeesQueryHandler).Assembly);
+    cfg.RegisterServicesFromAssembly(typeof(GetEmployeeByIdQueryHandler).Assembly);
+    cfg.RegisterServicesFromAssembly(typeof(LoginUserCommandHandler).Assembly);
+    cfg.RegisterServicesFromAssembly(typeof(UpdateEmployeeCommandHandler).Assembly);
+});
 
 var app = builder.Build();
 //Middleware here...!

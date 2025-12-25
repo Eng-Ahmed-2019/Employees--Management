@@ -9,8 +9,8 @@ namespace Employees.Domain.EmployeeEntity
         public string FullName { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public string Department { set; get; } = string.Empty;
+        [Column(TypeName = "decimal(18,2)")]
         public decimal Salary { get; set; }
-        public bool IsActive { get; set; }
         public DateTime CreatedAt { get; set; }
     }
 }

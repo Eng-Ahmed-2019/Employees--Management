@@ -1,6 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using MediatR;
+using Microsoft.AspNetCore.Mvc;
 using Employees.Application.DTOs;
-using Employees.Application.Services;
+using Employees.Application.Commands;
 
 namespace Employees.API.Controllers
 {
@@ -8,17 +9,17 @@ namespace Employees.API.Controllers
     [Route("api/[controller]")]
     public class AuthController : ControllerBase
     {
-        private readonly AuthService _authService;
+        private readonly IMediator _mediator;
 
-        public AuthController(AuthService authService)
+        public AuthController(IMediator mediator)
         {
-            _authService = authService;
+            _mediator = mediator;
         }
 
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterRequestDto request)
         {
-            var result = await _authService.Register(request);
+            var result = await _mediator.Send(new RegisterUserCommand(request));
             return Ok(result);
         }
 
@@ -26,7 +27,7 @@ namespace Employees.API.Controllers
         public async Task<IActionResult> Login([FromBody] LoginRequestDto loginRequest)
         {
             if (loginRequest == null) return BadRequest("Invalid login request.");
-            var result = await _authService.LoginAsync(loginRequest);
+            var result = await _mediator.Send(new LoginUserCommand(loginRequest));
             if (result == null) return Unauthorized("Invalid username or password.");
             return Ok(result);
         }

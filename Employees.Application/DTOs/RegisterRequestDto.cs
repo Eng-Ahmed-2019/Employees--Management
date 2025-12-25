@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Microsoft.AspNetCore.Http;
+using System.ComponentModel.DataAnnotations;
 
 namespace Employees.Application.DTOs
 {
@@ -18,5 +19,11 @@ namespace Employees.Application.DTOs
         [Required]
         [StringLength(14, ErrorMessage = "National ID required and must be = 14 characters")]
         public string NationalId { get; set; } = string.Empty;
+
+        [Required]
+        public IFormFile NationalIdPdfPath { get; set; } = null!;
+
+        [Required]
+        public IFormFile NationalIdImgPath { get; set; } = null!;
     }
 }

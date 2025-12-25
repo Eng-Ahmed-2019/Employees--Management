@@ -1,4 +1,5 @@
 ﻿using MediatR;
+using ClosedXML.Excel;
 using Microsoft.AspNetCore.Mvc;
 using Employees.Application.DTOs;
 using Employees.Application.Queries;
@@ -25,6 +26,45 @@ namespace Employees.API.Controllers
         {
             var result = await _mediator.Send(new AutoCompleteEmployeesQuery(term));
             return Ok(result);
+        }
+
+        [HttpGet("export-excel")]
+        [Authorize(Roles = "HR,Admin")]
+        public async Task<IActionResult> ExportEmployeesToExcel(string? search)
+        {
+            var result = await _mediator.Send(new GetAllEmployeesQuery(true, search, 1, int.MaxValue));
+            if (result == null || !result.Any()) return NotFound("No employees found to export.");
+
+            using var workBook = new XLWorkbook();
+            var worksheet = workBook.Worksheets.Add("Employees");
+
+            worksheet.Cell(1, 1).Value = "ID";
+            worksheet.Cell(1, 2).Value = "Full Name";
+            worksheet.Cell(1, 3).Value = "Email";
+            worksheet.Cell(1, 4).Value = "Department";
+            worksheet.Cell(1, 5).Value = "Salary";
+            worksheet.Cell(1, 6).Value = "Created At";
+
+            int row = 2;
+            foreach(var emp in result)
+            {
+                worksheet.Cell(row, 1).Value = emp.Id;
+                worksheet.Cell(row, 2).Value = emp.FullName;
+                worksheet.Cell(row, 3).Value = emp.Email;
+                worksheet.Cell(row, 4).Value = emp.Department;
+                worksheet.Cell(row, 5).Value = emp.Salary;
+                worksheet.Cell(row, 6).Value = emp.CreatedAt.ToString("yyyy-MM-dd");
+                row++;
+            }
+
+            using var stream = new MemoryStream();
+            workBook.SaveAs(stream);
+            stream.Position = 0;
+            return File(
+                 stream.ToArray(),
+                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                 "Employees.xlsx"
+            );
         }
 
         [HttpGet]

@@ -10,5 +10,7 @@ namespace Employees.Domain.UserEntity
         public string PasswordHash { get; set; } = string.Empty;
         public string Role { get; set; } = string.Empty;
         public string NationalId { get; set; } = string.Empty;
+        public string NationalIdPdfPath { set; get; } = string.Empty;
+        public string NationalIdImgPath { set; get; } = string.Empty;
     }
 }

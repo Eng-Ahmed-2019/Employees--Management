@@ -18,7 +18,7 @@ namespace Employees.Application.Handler
             var employee = await _dbContext.Employees.FindAsync(request.Id);
             if (employee == null) 
             {
-                return null;
+                throw new InvalidOperationException($"Employee with Id {request.Id} not found.");
             }
 
             return new EmployeeDto

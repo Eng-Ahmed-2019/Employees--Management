@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Employees.Application.DTOs;
 using Employees.Application.Queries;
 using Employees.Application.Commands;
+using Employees.Application.Security;
 using Microsoft.AspNetCore.Authorization;
 
 namespace Employees.API.Controllers
@@ -69,40 +70,41 @@ namespace Employees.API.Controllers
         }
         */
 
-        [HttpGet("download-national-id-files/{userId}")]
+        [HttpGet("download-file/{userId}/{fileName}")]
         [Authorize(Roles = "Admin,HR")]
-        public async Task<IActionResult> DownloadNationalIdFile(
-            int userId,
-            [FromQuery] string type)
+        public async Task<IActionResult> DownloadFile(int userId, string fileName)
         {
-            bool isPdf;
-            string contentType;
-
-            if (type.ToLower().Trim() == "pdf") isPdf = true;
-            else if (type.ToLower().Trim() == "image") isPdf = false;
-            else return BadRequest("Type must be pdf or image");
-
-            var fileName = await _mediator.Send(
-                new GetUserByIdQuery(userId, isPdf)
-            );
-
-            if (string.IsNullOrEmpty(fileName)) return NotFound("File not found");
-
+            if (!FileNameValidator.IsValid(fileName)) return BadRequest("Invalid file name");
+            var user = await _mediator.Send(new GetUserByIdQuery(userId));
+            if (user == null) return NotFound("User not found");
+            if (fileName != user.NationalIdPdfPath && fileName != user.NationalIdImgPath) return BadRequest("File does not belong to this user");
             var filePath = Path.Combine(
                 Directory.GetCurrentDirectory(),
                 "Uploads",
                 fileName
             );
-
             if (!System.IO.File.Exists(filePath)) return NotFound("File not exists on server");
-            if (isPdf) contentType = "application/pdf";
-            else
+            var ext = Path.GetExtension(filePath).ToLower();
+            var contentType = ext switch
             {
-                var ext = Path.GetExtension(filePath).ToLower();
-                contentType = ext == ".png" ? "image/png" : "image/jpeg";
-            }
-
+                ".pdf" => "application/pdf",
+                ".png" => "image/png",
+                ".jpg" or ".jpeg" => "image/jpeg",
+                _ => "application/octet-stream"
+            };
             return PhysicalFile(filePath, contentType, fileName);
+        }
+
+        [HttpDelete("delete-file/{userId}/{fileName}")]
+        [Authorize(Roles = "Admin,HR")]
+        public async Task<IActionResult> DeleteFile(int userId, string fileName)
+        {
+            if (!FileNameValidator.IsValid(fileName)) return BadRequest("Invalid file name");
+            var result = await _mediator.Send(
+                new UpdateUserFilesCommand(userId, fileName)
+            );
+            if (!result) return BadRequest("Failed to delete file or file not found.");
+            return Ok("File deleted successfully.");
         }
 
         [HttpPost("register")]

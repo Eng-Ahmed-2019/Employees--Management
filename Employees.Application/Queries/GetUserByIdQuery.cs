@@ -1,16 +1,15 @@
 ﻿using MediatR;
+using Employees.Domain.UserEntity;
 
 namespace Employees.Application.Queries
 {
-    public class GetUserByIdQuery : IRequest<string?>
+    public class GetUserByIdQuery : IRequest<User?>
     {
         public int Id { get; }
-        public bool IsPdf { get; }
 
-        public GetUserByIdQuery(int id, bool isPdf)
+        public GetUserByIdQuery(int id)
         {
             this.Id = id;
-            this.IsPdf = isPdf;
         }
     }
 }

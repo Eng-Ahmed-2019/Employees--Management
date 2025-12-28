@@ -1,10 +1,9 @@
 ﻿using MediatR;
 using Employees.Application.DTOs;
 using Employees.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 using Employees.Application.Commands;
 using Employees.Domain.EmployeeEntity;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace Employees.Application.Handler
 {
@@ -17,13 +16,13 @@ namespace Employees.Application.Handler
             _dbContext = dbContext;
         }
 
-        public async Task<EmployeeDto?> Handle(AddEmployeeCommand request, CancellationToken cancellationToken)
+        public async Task<EmployeeDto> Handle(AddEmployeeCommand request, CancellationToken cancellationToken)
         {
             var emailExists = await _dbContext.Employees
                 .AnyAsync(e => e.Email == request.Employee!.Email, cancellationToken);
             if (emailExists)
             {
-                return null;
+                throw new InvalidOperationException("An employee with the same email already exists.");
             }
 
             var employee = new Employee

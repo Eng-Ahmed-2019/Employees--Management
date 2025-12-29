@@ -22,7 +22,15 @@ namespace Employees.Application.Handler
                 .AnyAsync(e => e.Email == request.Employee!.Email, cancellationToken);
             if (emailExists)
             {
-                throw new InvalidOperationException("An employee with the same email already exists.");
+                return new EmployeeDto
+                {
+                    Id = 0,
+                    FullName = "EmailAlreadyExists",
+                    Email = request.Employee?.Email ?? string.Empty,
+                    Department = string.Empty,
+                    Salary = 0,
+                    CreatedAt = DateTime.MinValue
+                };
             }
 
             var employee = new Employee

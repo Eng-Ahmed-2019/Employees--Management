@@ -69,8 +69,9 @@ namespace Employees.API.Controllers
 
         [HttpGet]
         [Authorize(Roles = "Viewer,HR,Admin")]
-        public async Task<IActionResult> GetAllEmployees(string? search, int page = 1, int pageSize = 10)
+        public async Task<IActionResult> GetAllEmployees(string? search)
         {
+            int page = 1, pageSize = 10;
             bool isLoggedIn = User?.Identity?.IsAuthenticated ?? false;
             var result = await _mediator.Send(new GetAllEmployeesQuery(isLoggedIn, search, page, pageSize));
             if (result == null || !result.Any()) return NotFound("No employees found.");
